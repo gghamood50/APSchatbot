@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<link crossorigin="" href="https://fonts.gstatic.com/" rel="preconnect"/>
+<link as="style" href="https://fonts.googleapis.com/css2?display=swap&amp;family=Inter%3Awght%40400%3B500%3B700%3B900&amp;family=Noto+Sans%3Awght%40400%3B500%3B700%3B900" onload="this.rel='stylesheet'" rel="stylesheet"/>
+<title>Stitch Design</title>
+<link href="data:image/x-icon;base64," rel="icon" type="image/x-icon"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<style type="text/tailwindcss">
+    :root {
+      --primary: #11d452;
+      --glass-bg: rgba(255, 255, 255, 0.2);
+      --glass-border: rgba(255, 255, 255, 0.3);
+    }
+    .liquid-glass {
+      background: var(--glass-bg);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--glass-border);
+    }
+    body {
+      background: linear-gradient(120deg, #fdfbfb 0%, #ebedee 100%);
+    }
+  </style>
+</head>
+<body class="text-gray-800">
+<div class="relative flex size-full min-h-screen flex-col group/design-root overflow-x-hidden" style='font-family: Inter, "Noto Sans", sans-serif;'>
+<div class="flex h-full grow flex-col">
+<header class="sticky top-0 z-10 flex items-center justify-between whitespace-nowrap px-10 py-4 liquid-glass shadow-sm">
+<div class="flex items-center gap-3 text-slate-800">
+<div class="size-8 text-[var(--primary)]">
+<svg fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<path d="M42.4379 44C42.4379 44 36.0744 33.9038 41.1692 24C46.8624 12.9336 42.2078 4 42.2078 4L7.01134 4C7.01134 4 11.6577 12.932 5.96912 23.9969C0.876273 33.9029 7.27094 44 7.27094 44L42.4379 44Z" fill="currentColor"></path>
+</svg>
+</div>
+<h2 class="text-slate-800 text-xl font-bold leading-tight tracking-[-0.015em]">SleekChat</h2>
+</div>
+<div class="flex flex-1 justify-end gap-4">
+<button class="flex items-center justify-center rounded-full h-10 w-10 hover:bg-white/30 transition-colors">
+<div class="text-slate-700" data-icon="Gear" data-size="24px" data-weight="regular">
+<svg fill="currentColor" height="24px" viewBox="0 0 256 256" width="24px" xmlns="http://www.w3.org/2000/svg">
+<path d="M128,80a48,48,0,1,0,48,48A48.05,48.05,0,0,0,128,80Zm0,80a32,32,0,1,1,32-32A32,32,0,0,1,128,160Zm88-29.84q.06-2.16,0-4.32l14.92-18.64a8,8,0,0,0,1.48-7.06,107.21,107.21,0,0,0-10.88-26.25,8,8,0,0,0-6-3.93l-23.72-2.64q-1.48-1.56-3-3L186,40.54a8,8,0,0,0-3.94-6,107.71,107.71,0,0,0-26.25-10.87,8,8,0,0,0-7.06,1.49L130.16,40Q128,40,125.84,40L107.2,25.11a8,8,0,0,0-7.06-1.48A107.6,107.6,0,0,0,73.89,34.51a8,8,0,0,0-3.93,6L67.32,64.27q-1.56,1.49-3,3L40.54,70a8,8,0,0,0-6,3.94,107.71,107.71,0,0,0-10.87,26.25,8,8,0,0,0,1.49,7.06L40,125.84Q40,128,40,130.16L25.11,148.8a8,8,0,0,0-1.48,7.06,107.21,107.21,0,0,0,10.88,26.25,8,8,0,0,0,6,3.93l23.72,2.64q1.49,1.56,3,3L70,215.46a8,8,0,0,0,3.94,6,107.71,107.71,0,0,0,26.25,10.87,8,8,0,0,0,7.06-1.49L125.84,216q2.16.06,4.32,0l18.64,14.92a8,8,0,0,0,7.06,1.48,107.21,107.21,0,0,0,26.25-10.88,8,8,0,0,0,3.93-6l2.64-23.72q1.56-1.48,3-3L215.46,186a8,8,0,0,0,6-3.94,107.71,107.71,0,0,0,10.87-26.25,8,8,0,0,0-1.49-7.06Zm-16.1-6.5a73.93,73.93,0,0,1,0,8.68,8,8,0,0,0,1.74,5.48l14.19,17.73a91.57,91.57,0,0,1-6.23,15L187,173.11a8,8,0,0,0-5.1,2.64,74.11,74.11,0,0,1-6.14,6.14,8,8,0,0,0-2.64,5.1l-2.51,22.58a91.32,91.32,0,0,1-15,6.23l-17.74-14.19a8,8,0,0,0-5-1.75h-.48a73.93,73.93,0,0,1-8.68,0,8,8,0,0,0-5.48,1.74L100.45,215.8a91.57,91.57,0,0,1-15-6.23L82.89,187a8,8,0,0,0-2.64-5.1,74.11,74.11,0,0,1-6.14-6.14,8,8,0,0,0-5.1-2.64L46.43,170.6a91.32,91.32,0,0,1-6.23-15l14.19-17.74a8,8,0,0,0,1.74-5.48,73.93,73.93,0,0,1,0-8.68,8,8,0,0,0-1.74-5.48L40.2,100.45a91.57,91.57,0,0,1,6.23-15L69,82.89a8,8,0,0,0,5.1-2.64,74.11,74.11,0,0,1,6.14-6.14A8,8,0,0,0,82.89,69L85.4,46.43a91.32,91.32,0,0,1,15-6.23l17.74,14.19a8,8,0,0,0,5.48,1.74,73.93,73.93,0,0,1,8.68,0,8,8,0,0,0,5.48-1.74L155.55,40.2a91.57,91.57,0,0,1,15,6.23L173.11,69a8,8,0,0,0,2.64,5.1,74.11,74.11,0,0,1,6.14,6.14,8,8,0,0,0,5.1,2.64l22.58,2.51a91.32,91.32,0,0,1,6.23,15l-14.19,17.74A8,8,0,0,0,199.87,123.66Z"></path>
+</svg>
+</div>
+</button>
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDyLKUZ2ksIsskjDEVOoEG6L41Luf5jdKdHM2FfEpA5oqclz_v8sYbtLo1nF2JjMlCyEe52FFGX0eKyBhp40mgpv4w0TCJBx-a-lWnwNVRzZkvFKzjG_XqWl5U0qdvJ1sL5aCcBooMLp4eJjDZCbrEeOeaWjXOGmXJ2MDyk3rlANoANcqW4U0BOXdtTX61oWAzw81J6xnIROEcQ98uyIgKDxnnxxA80XxWALgzl-B4EAx-pKPb_5vIE1iO5WPD5tJl4ECsm7MePegRB");'></div>
+</div>
+</header>
+<main class="flex-1 flex flex-col justify-end py-10 px-4">
+<div class="w-full max-w-2xl mx-auto flex flex-col h-full">
+<div class="flex-1 space-y-6 overflow-y-auto pr-2">
+<div class="text-center mb-12">
+<h2 class="text-3xl font-bold text-slate-800">Chat with <span class="bg-gradient-to-r from-[var(--primary)] to-teal-400 bg-clip-text text-transparent">Afif</span> AI!</h2>
+<p class="text-slate-600 mt-2">Your personal school rules advisor</p>
+</div>
+<div class="flex items-start gap-4">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full w-10 shrink-0 border-2 border-white shadow-md" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCKDpZMmL-4FAEpydPQ-nO6_xgEAmMvufLNqqlJWx6fyi6AQdQPZAEY_h5P0tbay5g1ta0NO9ezls9_xH9OLJqFODAo-TmW1pJLqSoWUjHzhUDrNDOeJLlybfOj-impp8D9lkCGHT3JLxeBrtfwHykB7Z7L_GaWzV3xawDd8bFvK-ZkEhrZWTuz3W14sM9_JzTzyoG98T6xhMFmlFr9n3cYcN60kOmi2b3YvcDRD_qWLSdaHfqdS3li2uoEPoH2hFiX-Rdq922-y5Di");'></div>
+<div class="flex flex-col gap-1">
+<p class="text-[var(--primary)] text-sm font-semibold">AI Assistant</p>
+<div class="text-base leading-relaxed rounded-2xl rounded-tl-none p-4 bg-white/60 backdrop-blur-sm border border-white/70 shadow-sm text-slate-700 max-w-lg">Hello! How can I assist you today?</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<footer class="sticky bottom-0 z-10 py-4 liquid-glass">
+<div class="w-full max-w-2xl mx-auto px-4">
+<div class="relative">
+<input class="form-input w-full resize-none rounded-full text-slate-800 focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/50 border-none h-14 placeholder:text-slate-500 p-4 pl-6 pr-16 bg-white/50 shadow-md transition-shadow focus:shadow-lg" placeholder="Type your message here..." value=""/>
+<button class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center rounded-full h-10 w-10 bg-[var(--primary)] text-white hover:bg-green-500 transition-colors shadow-md hover:shadow-lg">
+<svg class="lucide lucide-arrow-up" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="m5 12 7-7 7 7"></path>
+<path d="M12 19V5"></path>
+</svg>
+</button>
+</div>
+</div>
+</footer>
+</div>
+</div>
+
+</body></html>
