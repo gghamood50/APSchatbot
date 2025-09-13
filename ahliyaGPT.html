@@ -193,6 +193,7 @@
             if (chatSnap.exists()) {
                 const chatData = chatSnap.data();
                 currentChatId = chatId;
+                updateActiveChatLink(currentChatId);
                 conversationHistory = chatData.messages || [];
                 
                 welcomeScreen.style.display = 'none';
@@ -204,8 +205,8 @@
                     const sender = message.role === 'user' ? 'user' : 'bot';
                     const content = message.parts[0].text;
                     const messageWrapper = document.createElement('div');
-                    // We don't add the animation class for previously loaded messages
-                    messageWrapper.className = `flex gap-4 mb-6 ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
+                    // Add the animation class for a smooth transition on loaded messages
+                    messageWrapper.className = `flex gap-4 mb-6 message-wrapper ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
                     if (sender === 'user') {
                          messageWrapper.innerHTML = `
                             <div class="max-w-xl bg-[var(--primary-color)] text-white p-4 rounded-xl rounded-br-none">
@@ -247,11 +248,6 @@
                 chatLink.className = 'flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#2e2e50] transition-colors duration-200 text-sm text-gray-300 cursor-pointer';
                 chatLink.setAttribute('data-chat-id', chatId);
                 
-                // Highlight the currently active chat
-                if (chatId === currentChatId) {
-                    chatLink.classList.add('bg-[#2e2e50]', 'text-white', 'font-semibold');
-                }
-
                 // Set the content
                 chatLink.innerHTML = `
                     <span class="material-symbols-outlined text-gray-500 text-base">chat_bubble</span>
@@ -267,6 +263,18 @@
                 recentChatsContainer.appendChild(recentChatsHeader); // Add header back
             }
             links.forEach(link => recentChatsContainer.appendChild(link)); // Add all new links
+            updateActiveChatLink(currentChatId);
+        });
+    }
+
+    function updateActiveChatLink(activeChatId) {
+        const chatLinks = recentChatsContainer.querySelectorAll('a[data-chat-id]');
+        chatLinks.forEach(link => {
+            if (link.dataset.chatId === activeChatId) {
+                link.classList.add('bg-[#2e2e50]', 'text-white', 'font-semibold');
+            } else {
+                link.classList.remove('bg-[#2e2e50]', 'text-white', 'font-semibold');
+            }
         });
     }
 
@@ -276,6 +284,7 @@
       welcomeScreen.style.display = 'flex';
       isFirstMessage = true;
       currentChatId = null;
+      updateActiveChatLink(currentChatId);
       conversationHistory = [];
       chatInput.value = '';
     }
@@ -354,16 +363,22 @@
 
     async function generateChatTitle(prompt) {
         try {
-            const titleGenPrompt = `Generate a very short, concise title (4-5 words max) for a conversation that starts with this message: "${prompt}"`;
+            const titleGenPrompt = `Generate a very short, concise title (4-5 words max) for a conversation that starts with this message: "${prompt}". Do not include any other text, quotation marks, or formatting. Just the plain text of the title.`;
             const titleModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
             const result = await titleModel.generateContent(titleGenPrompt);
             const response = await result.response;
-            const title = response.text().replace(/"/g, '').trim();
+            let title = response.text().replace(/["*]/g, '').trim();
+
+            // A simple heuristic to pick the first sensible line if the model still returns a list.
+            const newlineIndex = title.indexOf('\n');
+            if (newlineIndex !== -1) {
+                title = title.substring(0, newlineIndex).replace(/^\d+\.\s*/, '').trim();
+            }
             
             if (currentChatId) {
                 const chatRef = doc(db, 'chats', currentChatId);
                 await updateDoc(chatRef, {
-                    title: title
+                    title: title || "Chat" // Fallback title
                 });
             }
         } catch (error) {
