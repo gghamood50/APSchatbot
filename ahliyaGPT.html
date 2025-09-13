@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Chatbot</title>
+
+  <!-- Tailwind CSS & Google Fonts/Icons -->
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?display=swap&family=Noto+Sans:wght@400;500;700;900&family=Space+Grotesk:wght@400;500;700" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" />
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+
+  <!-- Markdown Renderer (to properly display AI responses) -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <style type="text/tailwindcss">
+    @tailwind base;
+    @tailwind components;
+    @tailwind utilities;
+
+    :root {
+      --primary-color: #22c55e;
+    }
+    
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #1e1e3a;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #4a4a6a;
+      border-radius: 3px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #5a5a7a;
+    }
+
+    .prose pre {
+        background-color: #111122 !important;
+        color: #d1d5db !important;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+    }
+    .prose code {
+        color: #d1d5db;
+        background-color: #111122;
+        padding: 0.125rem 0.25rem;
+        border-radius: 0.25rem;
+    }
+    .prose code::before, .prose code::after {
+        content: none !important;
+    }
+    
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    .message-wrapper {
+        animation: fadeInUp 0.4s ease-out forwards;
+    }
+  </style>
+</head>
+
+<body class="bg-[#111122]">
+  <div class="relative flex size-full min-h-screen flex-col dark group/design-root overflow-x-hidden" style='font-family: "Space Grotesk", "Noto Sans", sans-serif;'>
+    <div class="flex h-screen grow">
+      <!-- SIDEBAR -->
+      <aside class="flex flex-col w-80 bg-[#1e1e3a] text-white p-4">
+        <div class="flex items-center gap-2 mb-8">
+          <div class="w-8 h-8 bg-[var(--primary-color)] rounded-lg flex items-center justify-center">
+            <span class="material-symbols-outlined">chat</span>
+          </div>
+          <h1 class="text-xl font-bold">AI Chatbot</h1>
+        </div>
+        <button id="new-chat-button" class="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-[var(--primary-color)] text-white text-sm font-semibold mb-6 hover:bg-green-500 transition-colors duration-200">
+          <span class="material-symbols-outlined">add</span> New Chat
+        </button>
+        <div id="recent-chats-container" class="flex flex-col gap-2 flex-grow">
+          <h2 class="text-xs text-gray-400 font-medium uppercase tracking-wider mb-2">Recent Chats</h2>
+        </div>
+        <div class="flex flex-col gap-1 border-t border-gray-700 pt-4">
+          <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#2e2e50] transition-colors duration-200" href="#">
+            <span class="material-symbols-outlined text-gray-400">settings</span>
+            <p class="text-sm font-medium">Settings</p>
+          </a>
+        </div>
+      </aside>
+
+      <!-- MAIN CHAT AREA -->
+      <main class="flex flex-col flex-1 h-screen">
+        <div id="chat-container" class="flex-1 p-6 overflow-y-auto custom-scrollbar">
+          <div id="welcome-screen" class="flex flex-col items-center justify-center h-full">
+            <div class="text-center">
+              <div class="inline-block p-4 bg-[#1e1e3a] rounded-full mb-4">
+                <svg class="w-10 h-10 text-[var(--primary-color)]" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M8.625 9.75a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" stroke-linecap="round" stroke-linejoin="round"></path>
+                </svg>
+              </div>
+              <h2 class="text-white text-3xl font-bold leading-tight mb-2">Welcome to AI Chatbot</h2>
+              <p class="text-gray-400 text-lg leading-normal">Type a message to get started.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- INPUT AREA -->
+        <div class="px-6 py-4 bg-[#111122] border-t border-gray-800">
+          <div class="flex items-center bg-[#1e1e3a] rounded-xl px-4 py-2 ring-2 ring-transparent focus-within:ring-[var(--primary-color)] transition-all duration-200">
+            <input id="chat-input" class="form-input flex-1 bg-transparent text-white focus:outline-none focus:ring-0 border-none placeholder:text-gray-500 text-base" placeholder="Type your message here..." />
+            <div class="flex items-center gap-2">
+              <button id="send-button" class="flex items-center justify-center rounded-lg h-10 px-5 bg-[var(--primary-color)] text-white text-sm font-semibold hover:bg-green-500 transition-colors duration-200">
+                <span class="truncate">Send</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- SCRIPTING LOGIC -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+    import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCFkZluGKy7GonnQurR7nEpoinu-cahxKU",
+      authDomain: "ahliyagpt.firebaseapp.com",
+      projectId: "ahliyagpt",
+      storageBucket: "ahliyagpt.firebasestorage.app",
+      messagingSenderId: "357945619747",
+      appId: "1:357945619747:web:a13b59448da0d6b35c4896"
+    };
+    
+    const GOOGLE_API_KEY = "AIzaSyDjjbZ8B7ujyIaK0YjfcWuGO-Rv6zJhAts";
+
+    const app = initializeApp(firebaseConfig);
+    const genAI = new GoogleGenerativeAI(GOOGLE_API_KEY);
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+
+    const chatContainer = document.getElementById('chat-container');
+    const welcomeScreen = document.getElementById('welcome-screen');
+    const chatInput = document.getElementById('chat-input');
+    const sendButton = document.getElementById('send-button');
+    const newChatButton = document.getElementById('new-chat-button');
+
+    let isFirstMessage = true;
+    let isTyping = false;
+
+    sendButton.addEventListener('click', sendMessage);
+    chatInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        sendMessage();
+      }
+    });
+    newChatButton.addEventListener('click', startNewChat);
+
+    function startNewChat() {
+      chatContainer.innerHTML = '';
+      chatContainer.appendChild(welcomeScreen);
+      welcomeScreen.style.display = 'flex';
+      isFirstMessage = true;
+    }
+
+    function appendMessage(sender, message = '') {
+        const messageWrapper = document.createElement('div');
+        messageWrapper.className = `flex gap-4 mb-6 message-wrapper ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
+
+        let messageContentId;
+        if (sender === 'user') {
+            messageWrapper.innerHTML = `
+                <div class="max-w-xl bg-[var(--primary-color)] text-white p-4 rounded-xl rounded-br-none">
+                    <p class="text-base" style="word-wrap: break-word;">${message}</p>
+                </div>
+                <div class="w-10 h-10 rounded-full bg-gray-500 flex items-center justify-center font-bold text-white flex-shrink-0">
+                    M
+                </div>
+            `;
+        } else {
+            const botMessageId = 'bot-msg-' + Date.now();
+            messageWrapper.innerHTML = `
+                <div class="w-10 h-10 rounded-full bg-[#1e1e3a] flex items-center justify-center flex-shrink-0">
+                   <svg class="w-6 h-6 text-[var(--primary-color)]" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.898 20.523L16.5 21.75l-.398-1.227a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.227-.398a2.25 2.25 0 001.423-1.423L16.5 15.75l.398 1.227a2.25 2.25 0 001.423 1.423l1.227.398-1.227.398a2.25 2.25 0 00-1.423 1.423z"></path>
+                  </svg>
+                </div>
+                <div id="${botMessageId}" class="max-w-xl bg-[#2e2e50] text-gray-300 p-4 rounded-xl rounded-bl-none prose prose-invert prose-p:my-0">
+                    <!-- Thinking animation will go here -->
+                </div>
+            `;
+            messageContentId = botMessageId;
+        }
+        
+        chatContainer.appendChild(messageWrapper);
+        scrollToBottom();
+        return messageContentId;
+    }
+    
+    function scrollToBottom() {
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+    
+    function typewriterEffect(element, text) {
+        let i = 0;
+        let typingSpeed;
+
+        // NEW: Adjust speed based on response length
+        if (text.length < 150) {
+            typingSpeed = 25; // Mid pace
+        } else if (text.length < 400) {
+            typingSpeed = 15; // Fast pace
+        } else {
+            typingSpeed = 5;  // Very fast pace
+        }
+
+        element.innerHTML = ""; // Clear the element first
+        isTyping = true;
+        
+        function type() {
+            if (i < text.length) {
+                // NEW: Parse markdown on each character addition
+                const textSubstring = text.substring(0, i + 1);
+                element.innerHTML = marked.parse(textSubstring);
+                i++;
+                scrollToBottom();
+                setTimeout(type, typingSpeed);
+            } else {
+                isTyping = false;
+                // Final full parse to ensure everything is correct
+                element.innerHTML = marked.parse(text);
+                scrollToBottom();
+            }
+        }
+        type();
+    }
+
+    async function sendMessage() {
+      if (isTyping) return;
+      const prompt = chatInput.value.trim();
+      if (prompt === '') return;
+
+      if(isFirstMessage) {
+        welcomeScreen.style.display = 'none';
+        isFirstMessage = false;
+      }
+      
+      appendMessage('user', prompt);
+      chatInput.value = '';
+
+      const botMessageId = appendMessage('bot');
+      const botMessageEl = document.getElementById(botMessageId);
+      botMessageEl.innerHTML = `
+        <div class="flex items-center gap-2">
+            <div class="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div>
+            <div class="w-2 h-2 bg-gray-400 rounded-full animate-pulse [animation-delay:0.2s]"></div>
+            <div class="w-2 h-2 bg-gray-400 rounded-full animate-pulse [animation-delay:0.4s]"></div>
+        </div>`;
+      scrollToBottom();
+
+      try {
+        const chat = model.startChat();
+        const result = await chat.sendMessage(prompt);
+        const response = await result.response;
+        const text = response.text();
+        
+        typewriterEffect(botMessageEl, text);
+
+      } catch (error) {
+        console.error(error);
+        botMessageEl.innerHTML = `<p class="text-red-400">Oops! Something went wrong. Please check the console for details.</p>`;
+      }
+    }
+  </script>
+</body>
+</html>
