@@ -75,7 +75,7 @@
   <div class="relative flex size-full min-h-screen flex-col dark group/design-root overflow-x-hidden" style='font-family: "Space Grotesk", "Noto Sans", sans-serif;'>
     <div class="flex h-screen grow">
       <!-- SIDEBAR -->
-      <aside class="flex flex-col w-80 bg-[#1e1e3a] text-white p-4">
+      <aside class="flex flex-col w-80 bg-[#1e1e3a] text-white p-4 overflow-y-auto custom-scrollbar">
         <div class="flex items-center gap-2 mb-8">
           <div class="w-8 h-8 bg-[var(--primary-color)] rounded-lg flex items-center justify-center">
             <span class="material-symbols-outlined">chat</span>
@@ -97,7 +97,7 @@
       </aside>
 
       <!-- MAIN CHAT AREA -->
-      <main class="flex flex-col flex-1 h-screen">
+      <main class="flex flex-col flex-1">
         <div id="chat-container" class="flex-1 p-6 overflow-y-auto custom-scrollbar">
           <div id="welcome-screen" class="flex flex-col items-center justify-center h-full">
             <div class="text-center">
