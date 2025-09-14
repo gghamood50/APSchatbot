@@ -102,7 +102,7 @@
           <div id="welcome-screen" class="flex flex-col items-center justify-center h-full">
             <div class="text-center">
               <div class="inline-block p-4 bg-[#1e1e3a] rounded-full mb-4">
-                <svg class="w-10 h-10 text-[var(--primary-color)]" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24" xmlns="http://www.w3.org/2000/svg">
+                <svg class="w-10 h-10 text-[var(--primary-color)]" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <path d="M8.625 9.75a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" stroke-linecap="round" stroke-linejoin="round"></path>
                 </svg>
               </div>
@@ -130,7 +130,7 @@
   <!-- SCRIPTING LOGIC -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, getDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, query, orderBy, doc, getDoc, updateDoc, serverTimestamp, getDocs } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
     import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
 
     const firebaseConfig = {
@@ -162,7 +162,6 @@
     let currentChatId = null;
     let conversationHistory = [];
     let isFirstMessage = true;
-    let isTyping = false;
 
     sendButton.addEventListener('click', sendMessage);
     chatInput.addEventListener('keydown', (event) => {
@@ -233,38 +232,35 @@
         }
     }
 
-    function loadRecentChats() {
+    async function loadRecentChats() {
         const chatsQuery = query(collection(db, "chats"), orderBy("createdAt", "desc"));
+        const snapshot = await getDocs(chatsQuery);
 
-        onSnapshot(chatsQuery, (snapshot) => {
-            const links = [];
-            snapshot.forEach(doc => {
-                const chatData = doc.data();
-                const chatId = doc.id;
+        const links = [];
+        snapshot.forEach(doc => {
+            const chatData = doc.data();
+            const chatId = doc.id;
 
-                // Create the link element
-                const chatLink = document.createElement('a');
-                chatLink.href = '#';
-                chatLink.className = 'flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#2e2e50] transition-colors duration-200 text-sm text-gray-300 cursor-pointer';
-                chatLink.setAttribute('data-chat-id', chatId);
-                
-                // Set the content
-                chatLink.innerHTML = `
-                    <span class="material-symbols-outlined text-gray-500 text-base">chat_bubble</span>
-                    <p class="truncate">${chatData.title || 'New Chat'}</p>
-                `;
-                links.push(chatLink);
-            });
-
-            // Efficiently update the DOM
-            const recentChatsHeader = recentChatsContainer.querySelector('h2');
-            recentChatsContainer.innerHTML = ''; // Clear all existing links
-            if (recentChatsHeader) {
-                recentChatsContainer.appendChild(recentChatsHeader); // Add header back
-            }
-            links.forEach(link => recentChatsContainer.appendChild(link)); // Add all new links
-            updateActiveChatLink(currentChatId);
+            const chatLink = document.createElement('a');
+            chatLink.href = '#';
+            chatLink.className = 'flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#2e2e50] transition-colors duration-200 text-sm text-gray-300 cursor-pointer';
+            chatLink.setAttribute('data-chat-id', chatId);
+            
+            // Set the content
+            chatLink.innerHTML = `
+                <span class="material-symbols-outlined text-gray-500 text-base">chat_bubble</span>
+                <p class="truncate">${chatData.title || 'New Chat'}</p>
+            `;
+            links.push(chatLink);
         });
+
+        const recentChatsHeader = recentChatsContainer.querySelector('h2');
+        recentChatsContainer.innerHTML = ''; 
+        if (recentChatsHeader) {
+            recentChatsContainer.appendChild(recentChatsHeader);
+        }
+        links.forEach(link => recentChatsContainer.appendChild(link)); 
+        updateActiveChatLink(currentChatId);
     }
 
     function updateActiveChatLink(activeChatId) {
@@ -328,37 +324,11 @@
     }
     
     function typewriterEffect(element, text) {
-        let i = 0;
-        let typingSpeed;
-
-        // NEW: Adjust speed based on response length
-        if (text.length < 150) {
-            typingSpeed = 25; // Mid pace
-        } else if (text.length < 400) {
-            typingSpeed = 15; // Fast pace
-        } else {
-            typingSpeed = 5;  // Very fast pace
-        }
-
-        element.innerHTML = ""; // Clear the element first
-        isTyping = true;
-        
-        function type() {
-            if (i < text.length) {
-                // NEW: Parse markdown on each character addition
-                const textSubstring = text.substring(0, i + 1);
-                element.innerHTML = marked.parse(textSubstring);
-                i++;
-                scrollToBottom();
-                setTimeout(type, typingSpeed);
-            } else {
-                isTyping = false;
-                // Final full parse to ensure everything is correct
-                element.innerHTML = marked.parse(text);
-                scrollToBottom();
-            }
-        }
-        type();
+        // The message bubble already fades in. A typewriter effect on top of that
+        // can feel busy, and the implementation was causing bugs with markdown parsing.
+        // A simple, instant render is smoother and more reliable.
+        element.innerHTML = marked.parse(text);
+        scrollToBottom();
     }
 
     async function generateChatTitle(prompt) {
@@ -380,6 +350,7 @@
                 await updateDoc(chatRef, {
                     title: title || "Chat" // Fallback title
                 });
+                await loadRecentChats(); // Refresh list with new title
             }
         } catch (error) {
             console.error("Error generating title:", error);
@@ -387,7 +358,6 @@
     }
 
     async function sendMessage() {
-        if (isTyping) return;
         const prompt = chatInput.value.trim();
         if (prompt === '') return;
 
@@ -408,6 +378,8 @@
                     messages: []
                 });
                 currentChatId = chatRef.id;
+                await loadRecentChats(); // Refresh the list to show the new chat
+                updateActiveChatLink(currentChatId); // Highlight the new chat
                 generateChatTitle(prompt); // Fire-and-forget title generation
             } catch (error) {
                 console.error("Error creating new chat:", error);
@@ -451,7 +423,7 @@
             });
 
         } catch (error) {
-            console.error(error);
+            console.error("Error during AI chat:", error);
             botMessageEl.innerHTML = `<p class="text-red-400">Oops! Something went wrong. Please check the console for details.</p>`;
             // If AI fails, remove the user's last message from history to keep it clean
             conversationHistory.pop();
