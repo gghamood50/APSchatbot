@@ -348,12 +348,20 @@
             if (currentChatId) {
                 const chatRef = doc(db, 'chats', currentChatId);
                 await updateDoc(chatRef, {
-                    title: title || "Chat" // Fallback title
+                    title: title || prompt.substring(0, 50) // Use prompt as fallback
                 });
                 await loadRecentChats(); // Refresh list with new title
             }
         } catch (error) {
-            console.error("Error generating title:", error);
+            console.error("Error generating title, using prompt as fallback:", error);
+            if (currentChatId) {
+                const chatRef = doc(db, 'chats', currentChatId);
+                // Using await here to ensure it completes before loadRecentChats
+                await updateDoc(chatRef, {
+                    title: prompt.substring(0, 50) // Use prompt as fallback
+                });
+                await loadRecentChats();
+            }
         }
     }
 
