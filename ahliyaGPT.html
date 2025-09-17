@@ -171,7 +171,9 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
     import { getFirestore, collection, addDoc, query, orderBy, doc, getDoc, updateDoc, serverTimestamp, getDocs } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
-    import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
+    import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+    import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-functions.js";
+
 
     const firebaseConfig = {
       apiKey: "AIzaSyCFkZluGKy7GonnQurR7nEpoinu-cahxKU",
@@ -181,14 +183,14 @@
       messagingSenderId: "357945619747",
       appId: "1:357945619747:web:a13b59448da0d6b35c4896"
     };
-    
-    const GOOGLE_API_KEY = "AIzaSyDjjbZ8B7ujyIaK0YjfcWuGO-Rv6zJhAts";
 
-    // Firebase and AI Initialization
+    // Firebase Initialization
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    const genAI = new GoogleGenerativeAI(GOOGLE_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const auth = getAuth(app);
+    const functions = getFunctions(app);
+    const askGemini = httpsCallable(functions, 'askGemini');
+
 
     // DOM Elements
     const chatContainer = document.getElementById('chat-container');
@@ -198,11 +200,90 @@
     const newChatButton = document.getElementById('new-chat-button');
     const recentChatsContainer = document.getElementById('recent-chats-container');
 
+    // Auth UI Elements
+    const authOverlay = document.getElementById('auth-overlay');
+    const mainAppContainer = document.querySelector('.relative.flex.size-full');
+    const signinForm = document.getElementById('signin-form');
+    const signupForm = document.getElementById('signup-form');
+    const loginFormElement = document.getElementById('login-form-element');
+    const signupFormElement = document.getElementById('signup-form-element');
+    const showSignup = document.getElementById('show-signup');
+    const showSignin = document.getElementById('show-signin');
+    const signinError = document.getElementById('signin-error');
+    const signupError = document.getElementById('signup-error');
+    
     // State Management
     let currentChatId = null;
     let conversationHistory = [];
     let isFirstMessage = true;
+    let currentUser = null;
 
+
+    // --- Core Authentication Logic ---
+    onAuthStateChanged(auth, user => {
+        if (user) {
+            // User is signed in
+            currentUser = user;
+            authOverlay.classList.add('hidden');
+            mainAppContainer.classList.remove('hidden');
+            startNewChat(); // Reset the view
+            loadRecentChats(); // Load chats for the logged-in user
+            
+            // TODO: Add a sign-out button and logic
+        } else {
+            // User is signed out
+            currentUser = null;
+            authOverlay.classList.remove('hidden');
+            mainAppContainer.classList.add('hidden');
+            // Clear chat history and UI
+            recentChatsContainer.innerHTML = '<h2 class="text-xs text-gray-400 font-medium uppercase tracking-wider mb-2">Recent Chats</h2>';
+            startNewChat();
+        }
+    });
+    
+    // --- Auth UI Event Listeners ---
+    showSignup.addEventListener('click', (e) => {
+        e.preventDefault();
+        signinForm.classList.add('hidden');
+        signupForm.classList.remove('hidden');
+    });
+
+    showSignin.addEventListener('click', (e) => {
+        e.preventDefault();
+        signupForm.classList.add('hidden');
+        signinForm.classList.remove('hidden');
+    });
+
+    loginFormElement.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        signinError.textContent = '';
+        const email = document.getElementById('signin-email').value;
+        const password = document.getElementById('signin-password').value;
+        try {
+            await signInWithEmailAndPassword(auth, email, password);
+            // onAuthStateChanged will handle the rest
+        } catch (error) {
+            console.error("Sign in error:", error);
+            signinError.textContent = error.message;
+        }
+    });
+
+    signupFormElement.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        signupError.textContent = '';
+        const email = document.getElementById('signup-email').value;
+        const password = document.getElementById('signup-password').value;
+        try {
+            await createUserWithEmailAndPassword(auth, email, password);
+            // onAuthStateChanged will handle the rest
+        } catch (error) {
+            console.error("Sign up error:", error);
+            signupError.textContent = error.message;
+        }
+    });
+    
+    
+    // --- Chat Application Logic ---
     sendButton.addEventListener('click', sendMessage);
     chatInput.addEventListener('keydown', (event) => {
       if (event.key === 'Enter' && !event.shiftKey) {
@@ -216,17 +297,17 @@
         if (chatLink && chatLink.dataset.chatId) {
             event.preventDefault();
             const chatId = chatLink.dataset.chatId;
-            if (chatId !== currentChatId) { // Prevent reloading the active chat
+            if (chatId !== currentChatId) {
                 loadChat(chatId);
             }
         }
     });
-
-    loadRecentChats();
-
+    
     async function loadChat(chatId) {
+        if (!currentUser) return;
         try {
-            const chatRef = doc(db, 'chats', chatId);
+            // NOTE: This will be updated in the next step to be user-specific
+            const chatRef = doc(db, 'chats', chatId); 
             const chatSnap = await getDoc(chatRef);
 
             if (chatSnap.exists()) {
@@ -239,32 +320,15 @@
                 chatContainer.innerHTML = '';
                 isFirstMessage = false;
 
-                // Render the message history from the loaded chat
                 conversationHistory.forEach(message => {
                     const sender = message.role === 'user' ? 'user' : 'bot';
                     const content = message.parts[0].text;
-                    const messageWrapper = document.createElement('div');
-                    // Add the animation class for a smooth transition on loaded messages
-                    messageWrapper.className = `flex gap-4 mb-6 message-wrapper ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
-                    if (sender === 'user') {
-                         messageWrapper.innerHTML = `
-                            <div class="max-w-xl bg-[var(--primary-color)] text-white p-4 rounded-xl rounded-br-none">
-                                <p class="text-base" style="word-wrap: break-word;">${marked.parse(content)}</p>
-                            </div>
-                            <div class="w-10 h-10 rounded-full bg-gray-500 flex items-center justify-center font-bold text-white flex-shrink-0">M</div>`;
-                    } else {
-                        messageWrapper.innerHTML = `
-                            <div class="w-10 h-10 rounded-full bg-[#1e1e3a] flex items-center justify-center flex-shrink-0">
-                               <svg class="w-6 h-6 text-[var(--primary-color)]" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.898 20.523L16.5 21.75l-.398-1.227a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.227-.398a2.25 2.25 0 001.423-1.423L16.5 15.75l.398 1.227a2.25 2.25 0 001.423 1.423l1.227.398-1.227.398a2.25 2.25 0 00-1.423 1.423z"></path></svg>
-                            </div>
-                            <div class="max-w-xl bg-[#2e2e50] text-gray-300 p-4 rounded-xl rounded-bl-none prose prose-invert prose-p:my-0">${marked.parse(content)}</div>`;
-                    }
-                    chatContainer.appendChild(messageWrapper);
+                    appendMessage(sender, content, true); // Pass true to skip animation on load
                 });
                 scrollToBottom();
             } else {
                 console.error("Chat not found:", chatId);
-                startNewChat(); // Go to a clean state if chat is not found
+                startNewChat();
             }
         } catch (error) {
             console.error("Error loading chat:", error);
@@ -273,6 +337,8 @@
     }
 
     async function loadRecentChats() {
+        if (!currentUser) return;
+        // NOTE: This query will be updated in the next step to be user-specific
         const chatsQuery = query(collection(db, "chats"), orderBy("createdAt", "desc"));
         const snapshot = await getDocs(chatsQuery);
 
@@ -280,13 +346,10 @@
         snapshot.forEach(doc => {
             const chatData = doc.data();
             const chatId = doc.id;
-
             const chatLink = document.createElement('a');
             chatLink.href = '#';
             chatLink.className = 'flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#2e2e50] transition-colors duration-200 text-sm text-gray-300 cursor-pointer';
             chatLink.setAttribute('data-chat-id', chatId);
-            
-            // Set the content
             chatLink.innerHTML = `
                 <span class="material-symbols-outlined text-gray-500 text-base">chat_bubble</span>
                 <p class="truncate">${chatData.title || 'New Chat'}</p>
@@ -296,9 +359,7 @@
 
         const recentChatsHeader = recentChatsContainer.querySelector('h2');
         recentChatsContainer.innerHTML = ''; 
-        if (recentChatsHeader) {
-            recentChatsContainer.appendChild(recentChatsHeader);
-        }
+        if (recentChatsHeader) recentChatsContainer.appendChild(recentChatsHeader);
         links.forEach(link => recentChatsContainer.appendChild(link)); 
         updateActiveChatLink(currentChatId);
     }
@@ -325,18 +386,20 @@
       chatInput.value = '';
     }
 
-    function appendMessage(sender, message = '') {
+    function appendMessage(sender, message = '', skipAnimation = false) {
         const messageWrapper = document.createElement('div');
-        messageWrapper.className = `flex gap-4 mb-6 message-wrapper ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
+        const animationClass = skipAnimation ? '' : 'message-wrapper';
+        messageWrapper.className = `flex gap-4 mb-6 ${sender === 'user' ? 'justify-end' : 'justify-start'} ${animationClass}`;
 
         let messageContentId;
         if (sender === 'user') {
+            const userInitial = currentUser?.email ? currentUser.email[0].toUpperCase() : 'U';
             messageWrapper.innerHTML = `
                 <div class="max-w-xl bg-[var(--primary-color)] text-white p-4 rounded-xl rounded-br-none">
-                    <p class="text-base" style="word-wrap: break-word;">${message}</p>
+                    <div class="prose prose-invert prose-p:my-0">${marked.parse(message)}</div>
                 </div>
                 <div class="w-10 h-10 rounded-full bg-gray-500 flex items-center justify-center font-bold text-white flex-shrink-0">
-                    M
+                    ${userInitial}
                 </div>
             `;
         } else {
@@ -347,9 +410,7 @@
                     <path d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.898 20.523L16.5 21.75l-.398-1.227a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.227-.398a2.25 2.25 0 001.423-1.423L16.5 15.75l.398 1.227a2.25 2.25 0 001.423 1.423l1.227.398-1.227.398a2.25 2.25 0 00-1.423 1.423z"></path>
                   </svg>
                 </div>
-                <div id="${botMessageId}" class="max-w-xl bg-[#2e2e50] text-gray-300 p-4 rounded-xl rounded-bl-none prose prose-invert prose-p:my-0">
-                    <!-- Thinking animation will go here -->
-                </div>
+                <div id="${botMessageId}" class="max-w-xl bg-[#2e2e50] text-gray-300 p-4 rounded-xl rounded-bl-none prose prose-invert prose-p:my-0"></div>
             `;
             messageContentId = botMessageId;
         }
@@ -363,23 +424,19 @@
         chatContainer.scrollTop = chatContainer.scrollHeight;
     }
     
-    function typewriterEffect(element, text) {
-        // The message bubble already fades in. A typewriter effect on top of that
-        // can feel busy, and the implementation was causing bugs with markdown parsing.
-        // A simple, instant render is smoother and more reliable.
+    function renderBotMessage(element, text) {
         element.innerHTML = marked.parse(text);
         scrollToBottom();
     }
 
     async function generateChatTitle(prompt) {
         try {
-            const titleGenPrompt = `Generate a very short, concise title (4-5 words max) for a conversation that starts with this message: "${prompt}". Do not include any other text, quotation marks, or formatting. Just the plain text of the title.`;
-            const titleModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-            const result = await titleModel.generateContent(titleGenPrompt);
-            const response = await result.response;
-            let title = response.text().replace(/["*]/g, '').trim();
+            const result = await askGemini({ 
+                history: [{ role: "user", parts: [{ text: `Generate a very short, concise title (4-5 words max) for a conversation that starts with this message: "${prompt}". Do not include any other text, quotation marks, or formatting. Just the plain text of the title.`}]}],
+                prompt: "" 
+            });
+            let title = result.data.text.replace(/["*]/g, '').trim();
 
-            // A simple heuristic to pick the first sensible line if the model still returns a list.
             const newlineIndex = title.indexOf('\n');
             if (newlineIndex !== -1) {
                 title = title.substring(0, newlineIndex).replace(/^\d+\.\s*/, '').trim();
@@ -387,25 +444,19 @@
             
             if (currentChatId) {
                 const chatRef = doc(db, 'chats', currentChatId);
-                await updateDoc(chatRef, {
-                    title: title || prompt.substring(0, 50) // Use prompt as fallback
-                });
-                await loadRecentChats(); // Refresh list with new title
-            }
-        } catch (error) {
-            console.error("Error generating title, using prompt as fallback:", error);
-            if (currentChatId) {
-                const chatRef = doc(db, 'chats', currentChatId);
-                // Using await here to ensure it completes before loadRecentChats
-                await updateDoc(chatRef, {
-                    title: prompt.substring(0, 50) // Use prompt as fallback
-                });
+                await updateDoc(chatRef, { title: title || "New Chat" });
                 await loadRecentChats();
             }
+        } catch (error) {
+            console.error("Error generating title:", error);
         }
     }
 
     async function sendMessage() {
+        if (!currentUser) {
+            alert("You must be logged in to send a message.");
+            return;
+        }
         const prompt = chatInput.value.trim();
         if (prompt === '') return;
 
@@ -417,63 +468,50 @@
         appendMessage('user', prompt);
         chatInput.value = '';
 
-        // New Chat Creation
         if (currentChatId === null) {
             try {
+                // NOTE: This will be updated in the next step to be user-specific
                 const chatRef = await addDoc(collection(db, "chats"), {
                     title: "New Chat",
                     createdAt: serverTimestamp(),
-                    messages: []
+                    messages: [],
+                    userId: currentUser.uid // Add user ID here!
                 });
                 currentChatId = chatRef.id;
-                await loadRecentChats(); // Refresh the list to show the new chat
-                updateActiveChatLink(currentChatId); // Highlight the new chat
-                generateChatTitle(prompt); // Fire-and-forget title generation
+                await loadRecentChats();
+                updateActiveChatLink(currentChatId);
+
+                // This is a separate, non-essential call. No need to block UI.
+                generateChatTitle(prompt);
             } catch (error) {
                 console.error("Error creating new chat:", error);
-                appendMessage('bot', '<p class="text-red-400">Error: Could not create a new chat session. Please try again.</p>');
+                appendMessage('bot', '<p class="text-red-400">Error: Could not create a new chat session.</p>');
                 return;
             }
         }
 
-        // Add user's message to local history for context
         conversationHistory.push({ role: "user", parts: [{ text: prompt }] });
-
         const botMessageId = appendMessage('bot');
         const botMessageEl = document.getElementById(botMessageId);
-        botMessageEl.innerHTML = `
-            <div class="flex items-center gap-2">
-                <div class="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div>
-                <div class="w-2 h-2 bg-gray-400 rounded-full animate-pulse [animation-delay:0.2s]"></div>
-                <div class="w-2 h-2 bg-gray-400 rounded-full animate-pulse [animation-delay:0.4s]"></div>
-            </div>`;
+        botMessageEl.innerHTML = `<div class="flex items-center gap-2"><div class="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div><div class="w-2 h-2 bg-gray-400 rounded-full animate-pulse [animation-delay:0.2s]"></div><div class="w-2 h-2 bg-gray-400 rounded-full animate-pulse [animation-delay:0.4s]"></div></div>`;
         scrollToBottom();
 
         try {
-            // Provide all previous messages as context
-            const chat = model.startChat({
+            const result = await askGemini({
                 history: conversationHistory.slice(0, -1),
+                prompt: prompt
             });
+            const text = result.data.text;
 
-            const result = await chat.sendMessage(prompt);
-            const response = await result.response;
-            const text = response.text();
-
-            // Add AI's response to local history
             conversationHistory.push({ role: "model", parts: [{ text: text }] });
-            
-            typewriterEffect(botMessageEl, text);
+            renderBotMessage(botMessageEl, text);
 
-            // Save the updated conversation to Firestore
             const chatRef = doc(db, 'chats', currentChatId);
-            await updateDoc(chatRef, {
-                messages: conversationHistory
-            });
+            await updateDoc(chatRef, { messages: conversationHistory });
 
         } catch (error) {
             console.error("Error during AI chat:", error);
-            botMessageEl.innerHTML = `<p class="text-red-400">Oops! Something went wrong. Please check the console for details.</p>`;
-            // If AI fails, remove the user's last message from history to keep it clean
+            renderBotMessage(botMessageEl, `<p class="text-red-400">Oops! Something went wrong. The AI may be unavailable. Please try again later.</p><p class="text-xs text-gray-500 mt-2">${error.message}</p>`);
             conversationHistory.pop();
         }
     }
