@@ -170,7 +170,7 @@
   <!-- SCRIPTING LOGIC -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, query, orderBy, doc, getDoc, updateDoc, serverTimestamp, getDocs } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, query, where, orderBy, doc, getDoc, updateDoc, serverTimestamp, getDocs } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
     import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
     import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-functions.js";
 
@@ -188,7 +188,7 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app);
-    const functions = getFunctions(app);
+    const functions = getFunctions(app, 'me-central1');
     const askGemini = httpsCallable(functions, 'askGemini');
 
 
@@ -338,8 +338,7 @@
 
     async function loadRecentChats() {
         if (!currentUser) return;
-        // NOTE: This query will be updated in the next step to be user-specific
-        const chatsQuery = query(collection(db, "chats"), orderBy("createdAt", "desc"));
+        const chatsQuery = query(collection(db, "chats"), where("userId", "==", currentUser.uid), orderBy("createdAt", "desc"));
         const snapshot = await getDocs(chatsQuery);
 
         const links = [];
