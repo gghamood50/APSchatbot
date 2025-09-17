@@ -72,6 +72,46 @@
 </head>
 
 <body class="bg-[#111122]">
+  <div id="auth-overlay" class="fixed inset-0 z-50 bg-[#111122]/80 backdrop-blur-sm flex items-center justify-center hidden">
+    <div id="auth-container" class="bg-[#1e1e3a] p-8 rounded-lg shadow-xl w-full max-w-sm text-white">
+      <div id="signin-form">
+        <h2 class="text-2xl font-bold text-center mb-6">Welcome Back</h2>
+        <form id="login-form-element">
+          <div class="mb-4">
+            <label for="signin-email" class="block text-sm font-medium text-gray-400 mb-2">Email</label>
+            <input type="email" id="signin-email" class="w-full bg-[#2e2e50] border border-gray-600 rounded-md px-3 py-2 focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)]" required>
+          </div>
+          <div class="mb-6">
+            <label for="signin-password" class="block text-sm font-medium text-gray-400 mb-2">Password</label>
+            <input type="password" id="signin-password" class="w-full bg-[#2e2e50] border border-gray-600 rounded-md px-3 py-2 focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)]" required>
+          </div>
+          <p id="signin-error" class="text-red-400 text-sm mb-4 text-center h-5"></p>
+          <button type="submit" class="w-full bg-[var(--primary-color)] hover:bg-green-500 text-white font-bold py-2 px-4 rounded-md transition-colors duration-200">Sign In</button>
+        </form>
+        <p class="text-sm text-center text-gray-400 mt-6">
+          Don't have an account? <a href="#" id="show-signup" class="font-medium text-[var(--primary-color)] hover:underline">Sign Up</a>
+        </p>
+      </div>
+      <div id="signup-form" class="hidden">
+        <h2 class="text-2xl font-bold text-center mb-6">Create Account</h2>
+        <form id="signup-form-element">
+          <div class="mb-4">
+            <label for="signup-email" class="block text-sm font-medium text-gray-400 mb-2">Email</label>
+            <input type="email" id="signup-email" class="w-full bg-[#2e2e50] border border-gray-600 rounded-md px-3 py-2 focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)]" required>
+          </div>
+          <div class="mb-6">
+            <label for="signup-password" class="block text-sm font-medium text-gray-400 mb-2">Password</label>
+            <input type="password" id="signup-password" class="w-full bg-[#2e2e50] border border-gray-600 rounded-md px-3 py-2 focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)]" required>
+          </div>
+          <p id="signup-error" class="text-red-400 text-sm mb-4 text-center h-5"></p>
+          <button type="submit" class="w-full bg-[var(--primary-color)] hover:bg-green-500 text-white font-bold py-2 px-4 rounded-md transition-colors duration-200">Sign Up</button>
+        </form>
+        <p class="text-sm text-center text-gray-400 mt-6">
+          Already have an account? <a href="#" id="show-signin" class="font-medium text-[var(--primary-color)] hover:underline">Sign In</a>
+        </p>
+      </div>
+    </div>
+  </div>
   <div class="relative flex size-full min-h-screen flex-col dark group/design-root overflow-x-hidden" style='font-family: "Space Grotesk", "Noto Sans", sans-serif;'>
     <div class="flex h-screen grow">
       <!-- SIDEBAR -->
