@@ -68,6 +68,16 @@
     .message-wrapper {
         animation: fadeInUp 0.4s ease-out forwards;
     }
+
+    @keyframes blink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0; }
+    }
+    .typing-cursor {
+        color: var(--primary-color);
+        animation: blink 1s step-end infinite;
+        font-weight: 200;
+    }
   </style>
 </head>
 
@@ -471,52 +481,28 @@
     }
     
     function renderBotMessage(element, text) {
-      const words = text.split(/(\s+)/); // Split by spaces and keep them
-      let currentText = "";
-      let wordIndex = 0;
+        let currentText = "";
+        let charIndex = 0;
+        const typingSpeed = 30; // Milliseconds per character
 
-      // Define the duration range in milliseconds
-      const MIN_DURATION = 3000; // 3 seconds
-      const MAX_DURATION = 7000; // 7 seconds
+        element.innerHTML = ""; // Clear the "thinking..." indicator
 
-      // Define word counts for scaling the duration
-      const shortMsgWords = 10;
-      const longMsgWords = 200; // A reasonable upper bound for a "long" message
-
-      const wordCount = words.length;
-      let duration;
-
-      if (wordCount <= shortMsgWords) {
-        duration = MIN_DURATION;
-      } else if (wordCount >= longMsgWords) {
-        duration = MAX_DURATION;
-      } else {
-        // Linear interpolation between min and max duration
-        const factor = (wordCount - shortMsgWords) / (longMsgWords - shortMsgWords);
-        duration = MIN_DURATION + factor * (MAX_DURATION - MIN_DURATION);
-      }
-
-      // Calculate the delay between each word
-      const delay = wordCount > 0 ? duration / wordCount : 0;
-
-      element.innerHTML = ""; // Clear the "thinking..." indicator
-
-      function typeWord() {
-        if (wordIndex < words.length) {
-          currentText += words[wordIndex];
-          // Use a cursor character to simulate typing
-          element.innerHTML = marked.parse(currentText + '▌');
-          scrollToBottom();
-          wordIndex++;
-          setTimeout(typeWord, delay);
-        } else {
-          // When typing is complete, remove the cursor
-          element.innerHTML = marked.parse(currentText);
-          scrollToBottom();
+        function typeChar() {
+            if (charIndex < text.length) {
+                currentText += text.charAt(charIndex);
+                // The cursor will be a styled span
+                element.innerHTML = marked.parse(currentText + '<span class="typing-cursor">|</span>');
+                scrollToBottom();
+                charIndex++;
+                setTimeout(typeChar, typingSpeed);
+            } else {
+                // When typing is complete, remove the cursor
+                element.innerHTML = marked.parse(currentText);
+                scrollToBottom();
+            }
         }
-      }
 
-      typeWord();
+        typeChar();
     }
 
     async function generateChatTitle(prompt) {
