@@ -78,6 +78,33 @@
         animation: blink 1s step-end infinite;
         font-weight: 200;
     }
+    
+    /* Styles for collapsed sidebar */
+    #sidebar.collapsed {
+        width: 80px;
+    }
+    #sidebar.collapsed .text-xl,
+    #sidebar.collapsed #recent-chats-container h2,
+    #sidebar.collapsed #sidebar-footer p,
+    #sidebar.collapsed #new-chat-button span:last-child, /* Hides "New Chat" text */
+    #sidebar.collapsed #recent-chats-container p {
+        display: none;
+    }
+    #sidebar.collapsed #new-chat-button,
+    #sidebar.collapsed #recent-chats-container a,
+    #sidebar.collapsed #logout-button,
+    #sidebar.collapsed #collapse-sidebar-button {
+      justify-content: center;
+    }
+     #sidebar.collapsed #collapse-sidebar-button p {
+      display: none;
+    }
+    #main-content.expanded {
+      margin-left: 80px;
+    }
+    #sidebar.collapsed .flex.items-center.gap-2 {
+      justify-content: center;
+    }
   </style>
 </head>
 
@@ -123,14 +150,19 @@
     </div>
   </div>
   <div class="relative flex size-full min-h-screen flex-col dark group/design-root overflow-x-hidden" style='font-family: "Space Grotesk", "Noto Sans", sans-serif;'>
-    <div class="flex h-screen grow">
+    <div class="flex h-screen grow relative">
       <!-- SIDEBAR -->
-      <aside class="flex flex-col w-80 bg-[#1e1e3a] text-white p-4">
-        <div class="flex items-center gap-2 mb-8">
-          <div class="w-8 h-8 bg-[var(--primary-color)] rounded-lg flex items-center justify-center">
-            <span class="material-symbols-outlined">chat</span>
+      <aside id="sidebar" class="absolute z-30 lg:relative flex flex-col w-72 bg-[#1e1e3a] text-white p-4 h-full transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out">
+        <div class="flex items-center justify-between mb-8">
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 bg-[var(--primary-color)] rounded-lg flex items-center justify-center">
+              <span class="material-symbols-outlined">chat</span>
+            </div>
+            <h1 class="text-xl font-bold">AhliyaGPT</h1>
           </div>
-          <h1 class="text-xl font-bold">AhliyaGPT</h1>
+          <button id="close-sidebar-button" class="p-1 rounded-full hover:bg-[#2e2e50] lg:hidden">
+             <span class="material-symbols-outlined">close</span>
+          </button>
         </div>
         <button id="new-chat-button" class="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-[var(--primary-color)] text-white text-sm font-semibold mb-6 hover:bg-green-500 transition-colors duration-200">
           <span class="material-symbols-outlined">add</span> New Chat
@@ -138,16 +170,38 @@
         <div id="recent-chats-container" class="flex flex-col gap-2 flex-grow overflow-y-auto custom-scrollbar">
           <h2 class="text-xs text-gray-400 font-medium uppercase tracking-wider mb-2">Recent Chats</h2>
         </div>
-        <div class="flex flex-col gap-1 border-t border-gray-700 pt-4">
+        <div id="sidebar-footer" class="flex flex-col gap-1 border-t border-gray-700 pt-4 transition-all duration-300">
+          <button id="collapse-sidebar-button" class="hidden lg:flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#2e2e50] transition-colors duration-200 w-full text-left">
+            <span class="material-symbols-outlined text-gray-400" id="collapse-icon">menu_open</span>
+            <p class="text-sm font-medium flex-1">Collapse</p>
+          </button>
           <button id="logout-button" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#2e2e50] transition-colors duration-200 w-full text-left">
             <span class="material-symbols-outlined text-gray-400">logout</span>
-            <p class="text-sm font-medium">Log Out</p>
+            <p class="text-sm font-medium flex-1">Log Out</p>
           </button>
         </div>
       </aside>
 
+      <!-- Sidebar Backdrop -->
+      <div id="sidebar-backdrop" class="fixed inset-0 bg-black/50 z-20 hidden lg:hidden"></div>
+
       <!-- MAIN CHAT AREA -->
-      <main class="flex flex-col flex-1">
+      <main id="main-content" class="flex flex-col flex-1 lg:ml-72 transition-all duration-300 ease-in-out">
+        <!-- Mobile Header -->
+        <header class="p-4 flex justify-between items-center bg-[#111122] border-b border-gray-800 lg:hidden">
+            <button id="open-sidebar-button" class="p-2 rounded-md hover:bg-[#2e2e50] text-white">
+                <span class="material-symbols-outlined text-white">menu</span>
+            </button>
+            <div class="flex items-center gap-2">
+              <div class="w-8 h-8 bg-[var(--primary-color)] rounded-lg flex items-center justify-center">
+                <span class="material-symbols-outlined">chat</span>
+              </div>
+              <h1 class="text-xl font-bold text-white">AhliyaGPT</h1>
+            </div>
+            <!-- This empty div is for spacing, to keep the title centered -->
+            <div class="w-10"></div>
+        </header>
+
         <div id="chat-container" class="flex-1 p-6 overflow-y-auto custom-scrollbar">
           <div id="welcome-screen" class="flex flex-col items-center justify-center h-full">
             <div class="text-center">
@@ -260,6 +314,15 @@
     const signinError = document.getElementById('signin-error');
     const signupError = document.getElementById('signup-error');
     
+    // Sidebar Elements
+    const sidebar = document.getElementById('sidebar');
+    const openSidebarButton = document.getElementById('open-sidebar-button');
+    const closeSidebarButton = document.getElementById('close-sidebar-button');
+    const collapseSidebarButton = document.getElementById('collapse-sidebar-button');
+    const sidebarBackdrop = document.getElementById('sidebar-backdrop');
+    const mainContent = document.getElementById('main-content');
+    const collapseIcon = document.getElementById('collapse-icon');
+
     // State Management
     let currentChatId = null;
     let conversationHistory = [];
@@ -339,7 +402,36 @@
             });
         }
     });
+
+    // --- Sidebar Toggle Logic ---
+    const openSidebar = () => {
+        sidebar.classList.remove('-translate-x-full');
+        sidebarBackdrop.classList.remove('hidden');
+    };
+
+    const closeSidebar = () => {
+        sidebar.classList.add('-translate-x-full');
+        sidebarBackdrop.classList.add('hidden');
+    };
     
+    const toggleSidebarCollapse = () => {
+        sidebar.classList.toggle('collapsed');
+        mainContent.classList.toggle('lg:ml-72', !sidebar.classList.contains('collapsed'));
+        mainContent.classList.toggle('lg:ml-20', sidebar.classList.contains('collapsed')); // lg:ml-20 is w-20
+        
+        if (sidebar.classList.contains('collapsed')) {
+            collapseIcon.textContent = 'menu';
+        } else {
+            collapseIcon.textContent = 'menu_open';
+        }
+    };
+
+    openSidebarButton.addEventListener('click', openSidebar);
+    closeSidebarButton.addEventListener('click', closeSidebar);
+    sidebarBackdrop.addEventListener('click', closeSidebar);
+    collapseSidebarButton.addEventListener('click', toggleSidebarCollapse);
+
+
     // --- Chat Application Logic ---
     sendButton.addEventListener('click', sendMessage);
     chatInput.addEventListener('keydown', (event) => {
@@ -356,6 +448,10 @@
             const chatId = chatLink.dataset.chatId;
             if (chatId !== currentChatId) {
                 loadChat(chatId);
+            }
+            // Close sidebar on mobile after clicking a chat
+            if (window.innerWidth < 1024) {
+                closeSidebar();
             }
         }
     });
@@ -432,6 +528,10 @@
     }
 
     function startNewChat() {
+      // Close sidebar on mobile when starting a new chat
+      if (window.innerWidth < 1024) {
+          closeSidebar();
+      }
       chatContainer.innerHTML = '';
       chatContainer.appendChild(welcomeScreen);
       welcomeScreen.style.display = 'flex';
