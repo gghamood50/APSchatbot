@@ -125,7 +125,7 @@
   <div class="relative flex size-full min-h-screen flex-col dark group/design-root overflow-x-hidden" style='font-family: "Space Grotesk", "Noto Sans", sans-serif;'>
     <div class="flex h-screen grow">
       <!-- SIDEBAR -->
-      <aside class="flex flex-col w-80 bg-[#1e1e3a] text-white p-4 overflow-y-auto custom-scrollbar">
+      <aside class="flex flex-col w-80 bg-[#1e1e3a] text-white p-4">
         <div class="flex items-center gap-2 mb-8">
           <div class="w-8 h-8 bg-[var(--primary-color)] rounded-lg flex items-center justify-center">
             <span class="material-symbols-outlined">chat</span>
@@ -135,7 +135,7 @@
         <button id="new-chat-button" class="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-[var(--primary-color)] text-white text-sm font-semibold mb-6 hover:bg-green-500 transition-colors duration-200">
           <span class="material-symbols-outlined">add</span> New Chat
         </button>
-        <div id="recent-chats-container" class="flex flex-col gap-2 flex-grow">
+        <div id="recent-chats-container" class="flex flex-col gap-2 flex-grow overflow-y-auto custom-scrollbar">
           <h2 class="text-xs text-gray-400 font-medium uppercase tracking-wider mb-2">Recent Chats</h2>
         </div>
         <div class="flex flex-col gap-1 border-t border-gray-700 pt-4">
