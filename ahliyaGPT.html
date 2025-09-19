@@ -462,8 +462,52 @@
     }
     
     function renderBotMessage(element, text) {
-        element.innerHTML = marked.parse(text);
-        scrollToBottom();
+      const words = text.split(/(\s+)/); // Split by spaces and keep them
+      let currentText = "";
+      let wordIndex = 0;
+
+      // Define the duration range in milliseconds
+      const MIN_DURATION = 3000; // 3 seconds
+      const MAX_DURATION = 7000; // 7 seconds
+
+      // Define word counts for scaling the duration
+      const shortMsgWords = 10;
+      const longMsgWords = 200; // A reasonable upper bound for a "long" message
+
+      const wordCount = words.length;
+      let duration;
+
+      if (wordCount <= shortMsgWords) {
+        duration = MIN_DURATION;
+      } else if (wordCount >= longMsgWords) {
+        duration = MAX_DURATION;
+      } else {
+        // Linear interpolation between min and max duration
+        const factor = (wordCount - shortMsgWords) / (longMsgWords - shortMsgWords);
+        duration = MIN_DURATION + factor * (MAX_DURATION - MIN_DURATION);
+      }
+
+      // Calculate the delay between each word
+      const delay = wordCount > 0 ? duration / wordCount : 0;
+
+      element.innerHTML = ""; // Clear the "thinking..." indicator
+
+      function typeWord() {
+        if (wordIndex < words.length) {
+          currentText += words[wordIndex];
+          // Use a cursor character to simulate typing
+          element.innerHTML = marked.parse(currentText + '▌');
+          scrollToBottom();
+          wordIndex++;
+          setTimeout(typeWord, delay);
+        } else {
+          // When typing is complete, remove the cursor
+          element.innerHTML = marked.parse(currentText);
+          scrollToBottom();
+        }
+      }
+
+      typeWord();
     }
 
     async function generateChatTitle(prompt) {
