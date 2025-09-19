@@ -481,28 +481,44 @@
     }
     
     function renderBotMessage(element, text) {
-        let currentText = "";
-        let charIndex = 0;
-        const typingSpeed = 30; // Milliseconds per character
+        let charIndex = 0; // Keep track of how many chars are currently rendered
+        
+        const wordCount = text.split(/\s+/).length;
+        let typingSpeed = 30; // Default speed in ms per character
 
-        element.innerHTML = ""; // Clear the "thinking..." indicator
+        if (wordCount > 10) {
+            const totalDuration = 5000; // 5 seconds
+            typingSpeed = totalDuration / text.length;
+        }
 
-        function typeChar() {
-            if (charIndex < text.length) {
-                currentText += text.charAt(charIndex);
-                // The cursor will be a styled span
-                element.innerHTML = marked.parse(currentText + '<span class="typing-cursor">|</span>');
+        element.innerHTML = ""; // Clear "thinking..."
+        const startTime = performance.now();
+
+        function animationFrame() {
+            const elapsedTime = performance.now() - startTime;
+            // Calculate how many characters should be visible by now
+            const expectedCharCount = Math.floor(elapsedTime / typingSpeed);
+
+            // Only update DOM if we have new characters to render
+            if (expectedCharCount > charIndex) {
+                charIndex = Math.min(expectedCharCount, text.length); // Don't go past the end
+                const currentSubstring = text.substring(0, charIndex);
+                
+                element.innerHTML = marked.parse(currentSubstring + '<span class="typing-cursor">|</span>');
                 scrollToBottom();
-                charIndex++;
-                setTimeout(typeChar, typingSpeed);
+            }
+
+            // If not done, schedule the next frame
+            if (charIndex < text.length) {
+                requestAnimationFrame(animationFrame);
             } else {
-                // When typing is complete, remove the cursor
-                element.innerHTML = marked.parse(currentText);
+                // Animation complete, remove cursor
+                element.innerHTML = marked.parse(text);
                 scrollToBottom();
             }
         }
 
-        typeChar();
+        requestAnimationFrame(animationFrame);
     }
 
     async function generateChatTitle(prompt) {
