@@ -172,7 +172,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
     import { getFirestore, collection, addDoc, query, where, orderBy, doc, getDoc, updateDoc, serverTimestamp, getDocs } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
     import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-    import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-functions.js";
+    import { getFunctions } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-functions.js";
 
 
     const firebaseConfig = {
@@ -189,7 +189,45 @@
     const db = getFirestore(app);
     const auth = getAuth(app);
     const functions = getFunctions(app, 'me-central1');
-    const askGemini = httpsCallable(functions, 'askGemini');
+    
+    // New function to call the Cloud Run backend using fetch
+    const askGemini = async (payload) => {
+      const CLOUD_RUN_URL = 'https://ask-gemini-357945619747.me-central1.run.app';
+      
+      let idToken = null;
+      // Get the Firebase Auth token to securely call the backend
+      if (auth.currentUser) {
+        try {
+          idToken = await auth.currentUser.getIdToken();
+        } catch (error) {
+          console.error("Error getting ID token:", error);
+          // Allow proceeding without a token for cases where auth is not mandatory,
+          // but log the error. The backend will ultimately decide.
+        }
+      }
+
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+      if (idToken) {
+        headers['Authorization'] = `Bearer ${idToken}`;
+      }
+
+      const response = await fetch(CLOUD_RUN_URL, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify({ data: payload }) // Backend expects payload wrapped in 'data'
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData?.error?.message || `Request failed with status ${response.status}`;
+        console.error("Backend error:", errorData);
+        throw new Error(errorMessage);
+      }
+      
+      return response.json(); // Returns the JSON body, e.g., { result: { text: '...' } }
+    };
 
 
     // DOM Elements
@@ -434,7 +472,8 @@
                 history: [{ role: "user", parts: [{ text: `Generate a very short, concise title (4-5 words max) for a conversation that starts with this message: "${prompt}". Do not include any other text, quotation marks, or formatting. Just the plain text of the title.`}]}],
                 prompt: "" 
             });
-            let title = result.data.text.replace(/["*]/g, '').trim();
+            // The new response format is { result: { text: '...' } }
+            let title = result.result.text.replace(/["*]/g, '').trim();
 
             const newlineIndex = title.indexOf('\n');
             if (newlineIndex !== -1) {
@@ -500,7 +539,8 @@
                 history: conversationHistory.slice(0, -1),
                 prompt: prompt
             });
-            const text = result.data.text;
+            // The new response format is { result: { text: '...' } }
+            const text = result.result.text;
 
             conversationHistory.push({ role: "model", parts: [{ text: text }] });
             renderBotMessage(botMessageEl, text);
