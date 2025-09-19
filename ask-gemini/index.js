@@ -51,7 +51,10 @@ export const askGemini = onRequest({ secrets: ["GEMINI_API_KEY"] }, async (req, 
 
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.5-flash",
+      systemInstruction: "You are AhliyaGPT, a large language model. You are a school project for 'Al ahliya private school'. You must only refer to yourself as AhliyaGPT. Do not use any other name or alias for yourself. Do not mention that you are a language model unless it is necessary for the conversation.",
+    });
 
     const chat = model.startChat({ history: history || [] });
     const result = await chat.sendMessage(prompt);
