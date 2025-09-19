@@ -79,31 +79,20 @@
         font-weight: 200;
     }
     
-    /* Styles for collapsed sidebar */
-    #sidebar.collapsed {
-        width: 80px;
-    }
-    #sidebar.collapsed .text-xl,
-    #sidebar.collapsed #recent-chats-container h2,
-    #sidebar.collapsed #sidebar-footer p,
-    #sidebar.collapsed #new-chat-button span:last-child, /* Hides "New Chat" text */
-    #sidebar.collapsed #recent-chats-container p {
-        display: none;
-    }
-    #sidebar.collapsed #new-chat-button,
-    #sidebar.collapsed #recent-chats-container a,
-    #sidebar.collapsed #logout-button,
-    #sidebar.collapsed #collapse-sidebar-button {
-      justify-content: center;
-    }
-     #sidebar.collapsed #collapse-sidebar-button p {
-      display: none;
-    }
-    #main-content.expanded {
-      margin-left: 80px;
-    }
-    #sidebar.collapsed .flex.items-center.gap-2 {
-      justify-content: center;
+    /* Styles for fully closed sidebar on desktop */
+    @media (min-width: 1024px) {
+      #sidebar.closed {
+        transform: translateX(-100%);
+      }
+      #main-content.closed {
+        margin-left: 0;
+        width: 100%;
+      }
+      
+      /* This should fix the alignment issue when the sidebar is open */
+      #main-content {
+        width: calc(100% - 18rem); /* w-72 is 18rem */
+      }
     }
   </style>
 </head>
@@ -163,6 +152,9 @@
           <button id="close-sidebar-button" class="p-1 rounded-full hover:bg-[#2e2e50] lg:hidden">
              <span class="material-symbols-outlined">close</span>
           </button>
+          <button id="desktop-close-sidebar-button" class="p-1 rounded-full hover:bg-[#2e2e50] hidden lg:block">
+             <span class="material-symbols-outlined">chevron_left</span>
+          </button>
         </div>
         <button id="new-chat-button" class="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-[var(--primary-color)] text-white text-sm font-semibold mb-6 hover:bg-green-500 transition-colors duration-200">
           <span class="material-symbols-outlined">add</span> New Chat
@@ -171,16 +163,17 @@
           <h2 class="text-xs text-gray-400 font-medium uppercase tracking-wider mb-2">Recent Chats</h2>
         </div>
         <div id="sidebar-footer" class="flex flex-col gap-1 border-t border-gray-700 pt-4 transition-all duration-300">
-          <button id="collapse-sidebar-button" class="hidden lg:flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#2e2e50] transition-colors duration-200 w-full text-left">
-            <span class="material-symbols-outlined text-gray-400" id="collapse-icon">menu_open</span>
-            <p class="text-sm font-medium flex-1">Collapse</p>
-          </button>
           <button id="logout-button" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#2e2e50] transition-colors duration-200 w-full text-left">
             <span class="material-symbols-outlined text-gray-400">logout</span>
             <p class="text-sm font-medium flex-1">Log Out</p>
           </button>
         </div>
       </aside>
+
+      <!-- Open sidebar button (for desktop) -->
+      <button id="desktop-open-sidebar-button" class="fixed top-4 left-4 z-40 p-1 rounded-full text-white hidden hover:bg-[#2e2e50]">
+        <span class="material-symbols-outlined">menu</span>
+      </button>
 
       <!-- Sidebar Backdrop -->
       <div id="sidebar-backdrop" class="fixed inset-0 bg-black/50 z-20 hidden lg:hidden"></div>
@@ -316,12 +309,15 @@
     
     // Sidebar Elements
     const sidebar = document.getElementById('sidebar');
-    const openSidebarButton = document.getElementById('open-sidebar-button');
-    const closeSidebarButton = document.getElementById('close-sidebar-button');
-    const collapseSidebarButton = document.getElementById('collapse-sidebar-button');
-    const sidebarBackdrop = document.getElementById('sidebar-backdrop');
     const mainContent = document.getElementById('main-content');
-    const collapseIcon = document.getElementById('collapse-icon');
+    const sidebarBackdrop = document.getElementById('sidebar-backdrop');
+    // Mobile sidebar buttons
+    const mobileOpenSidebarButton = document.getElementById('open-sidebar-button');
+    const mobileCloseSidebarButton = document.getElementById('close-sidebar-button');
+    // Desktop sidebar buttons
+    const desktopOpenSidebarButton = document.getElementById('desktop-open-sidebar-button');
+    const desktopCloseSidebarButton = document.getElementById('desktop-close-sidebar-button');
+
 
     // State Management
     let currentChatId = null;
@@ -404,32 +400,37 @@
     });
 
     // --- Sidebar Toggle Logic ---
-    const openSidebar = () => {
+
+    // For mobile (slide-over)
+    const openMobileSidebar = () => {
         sidebar.classList.remove('-translate-x-full');
         sidebarBackdrop.classList.remove('hidden');
     };
 
-    const closeSidebar = () => {
+    const closeMobileSidebar = () => {
         sidebar.classList.add('-translate-x-full');
         sidebarBackdrop.classList.add('hidden');
     };
+
+    mobileOpenSidebarButton.addEventListener('click', openMobileSidebar);
+    mobileCloseSidebarButton.addEventListener('click', closeMobileSidebar);
+    sidebarBackdrop.addEventListener('click', closeMobileSidebar);
+
+    // For desktop (slide in/out)
+    const closeDesktopSidebar = () => {
+        sidebar.classList.add('closed');
+        mainContent.classList.add('closed');
+        desktopOpenSidebarButton.classList.remove('hidden');
+    };
     
-    const toggleSidebarCollapse = () => {
-        sidebar.classList.toggle('collapsed');
-        mainContent.classList.toggle('lg:ml-72', !sidebar.classList.contains('collapsed'));
-        mainContent.classList.toggle('lg:ml-20', sidebar.classList.contains('collapsed')); // lg:ml-20 is w-20
-        
-        if (sidebar.classList.contains('collapsed')) {
-            collapseIcon.textContent = 'menu';
-        } else {
-            collapseIcon.textContent = 'menu_open';
-        }
+    const openDesktopSidebar = () => {
+        sidebar.classList.remove('closed');
+        mainContent.classList.remove('closed');
+        desktopOpenSidebarButton.classList.add('hidden');
     };
 
-    openSidebarButton.addEventListener('click', openSidebar);
-    closeSidebarButton.addEventListener('click', closeSidebar);
-    sidebarBackdrop.addEventListener('click', closeSidebar);
-    collapseSidebarButton.addEventListener('click', toggleSidebarCollapse);
+    desktopCloseSidebarButton.addEventListener('click', closeDesktopSidebar);
+    desktopOpenSidebarButton.addEventListener('click', openDesktopSidebar);
 
 
     // --- Chat Application Logic ---
