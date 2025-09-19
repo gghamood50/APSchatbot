@@ -447,7 +447,7 @@
                     <path d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.898 20.523L16.5 21.75l-.398-1.227a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.227-.398a2.25 2.25 0 001.423-1.423L16.5 15.75l.398 1.227a2.25 2.25 0 001.423 1.423l1.227.398-1.227.398a2.25 2.25 0 00-1.423 1.423z"></path>
                   </svg>
                 </div>
-                <div id="${botMessageId}" class="max-w-xl bg-[#2e2e50] text-gray-300 p-4 rounded-xl rounded-bl-none prose prose-invert prose-p:my-0"></div>
+                <div id="${botMessageId}" class="max-w-xl bg-[#2e2e50] text-gray-300 p-4 rounded-xl rounded-bl-none prose prose-invert prose-p:my-0">${ skipAnimation && message ? marked.parse(message) : '' }</div>
             `;
             messageContentId = botMessageId;
         }
@@ -511,26 +511,36 @@
     }
 
     async function generateChatTitle(prompt) {
+        let title = '';
         try {
-            const result = await askGemini({ 
-                history: [{ role: "user", parts: [{ text: `Generate a very short, concise title (4-5 words max) for a conversation that starts with this message: "${prompt}". Do not include any other text, quotation marks, or formatting. Just the plain text of the title.`}]}],
-                prompt: "" 
+            const titlePrompt = `Generate a very short, concise title (4-5 words max) for a conversation that starts with this message: "${prompt}". Do not include any other text, quotation marks, or formatting. Just the plain text of the title.`;
+            const result = await askGemini({
+                history: [],
+                prompt: titlePrompt
             });
-            // The new response format is { result: { text: '...' } }
-            let title = result.result.text.replace(/["*]/g, '').trim();
-
-            const newlineIndex = title.indexOf('\n');
-            if (newlineIndex !== -1) {
-                title = title.substring(0, newlineIndex).replace(/^\d+\.\s*/, '').trim();
-            }
             
-            if (currentChatId) {
-                const chatRef = doc(db, 'chats', currentChatId);
-                await updateDoc(chatRef, { title: title || "New Chat" });
-                await loadRecentChats();
+            // The new response format is { result: { text: '...' } }
+            let generatedTitle = result.result.text.replace(/["*]/g, '').trim();
+
+            // Take only the first line if there are multiple lines
+            const newlineIndex = generatedTitle.indexOf('\n');
+            if (newlineIndex !== -1) {
+                title = generatedTitle.substring(0, newlineIndex).replace(/^\d+\.\s*/, '').trim();
+            } else {
+                title = generatedTitle;
             }
+
         } catch (error) {
             console.error("Error generating title:", error);
+            // Title remains empty, which will trigger the fallback logic below.
+        }
+
+        if (currentChatId) {
+            const chatRef = doc(db, 'chats', currentChatId);
+            // Use the generated title, or fall back to the user's prompt (truncated) if the title is empty.
+            const finalTitle = title || prompt.substring(0, 50); 
+            await updateDoc(chatRef, { title: finalTitle });
+            await loadRecentChats();
         }
     }
 
