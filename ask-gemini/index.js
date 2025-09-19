@@ -6,6 +6,7 @@
 // IMPORTANT: We are now using onRequest instead of onCall
 import { onRequest } from "firebase-functions/v2/https";
 import { initializeApp } from "firebase-admin/app";
+import { getAuth } from "firebase-admin/auth";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 initializeApp();
@@ -13,13 +14,27 @@ initializeApp();
 // This is now a standard, secure HTTP function.
 export const askGemini = onRequest({ secrets: ["GEMINI_API_KEY"] }, async (req, res) => {
   // Set CORS headers for preflight and actual requests.
-  res.set("Access-Control-Allow-Origin", "*");
+  res.set("Access-Control-Allow-Origin", "https://ahliyagpt.web.app");
   res.set("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
   res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
   // Handle preflight OPTIONS request.
   if (req.method === "OPTIONS") {
     res.status(204).send("");
+    return;
+  }
+
+  // --- Authentication ---
+  const idToken = req.headers.authorization?.split('Bearer ')[1];
+  if (!idToken) {
+    res.status(401).send({ error: 'Unauthorized' });
+    return;
+  }
+  try {
+    // This line verifies the user is real.
+    await getAuth().verifyIdToken(idToken);
+  } catch (error) {
+    res.status(401).send({ error: 'Unauthorized' });
     return;
   }
 
